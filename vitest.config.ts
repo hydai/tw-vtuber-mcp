@@ -17,5 +17,12 @@ export default defineConfig({
   ],
   test: {
     setupFiles: ["./test/apply-migrations.ts"],
+    coverage: {
+      // v8 coverage relies on the Node inspector, which workerd lacks; istanbul
+      // instruments via source transforms and works in the Workers pool.
+      provider: "istanbul",
+      include: ["src/**"],
+      reporter: ["text", "html"],
+    },
   },
 });
