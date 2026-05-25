@@ -118,6 +118,8 @@ A `vtuber` object:
 | `GET /v1/livestreams?region=&debut=&no_title=` | live now (real-time pass-through) |
 | `GET /v1/status` | `get_data_status` |
 
+**OpenAPI spec:** `https://twvtuber.oshi.tw/openapi.json` — import into Swagger UI, Postman, or any codegen tool. (Source: [`src/openapi.ts`](src/openapi.ts), served live.)
+
 ## Architecture
 
 - **Daily ingestion** (Cron, `scheduled()`): polls the upstream `update-time.json` as a cheap change-signal, then fetches the `all`-region aggregate JSON, parses/merges it, and upserts into **D1** (SQLite). Per-region data is derived via the `nationality` column. Raw files are archived to **R2**. A history row per VTuber per day accumulates the time-series.

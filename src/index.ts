@@ -1,6 +1,7 @@
 import { runIngest } from "./ingest";
 import { VTuberMCP } from "./mcp";
 import { handleRest, jsonResponse, CORS } from "./rest";
+import { openApiSpec } from "./openapi";
 
 // Re-export the Durable Object class so the runtime can find it.
 export { VTuberMCP };
@@ -17,6 +18,11 @@ export default {
 
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: CORS });
+    }
+
+    // OpenAPI spec — public metadata, exempt from rate limiting, cacheable.
+    if (url.pathname === "/openapi.json") {
+      return jsonResponse(openApiSpec, 200, { "Cache-Control": "public, max-age=3600" });
     }
 
     // Per-IP rate limiting (Workers Rate Limiting binding; per-colo, 60s window).
@@ -40,6 +46,7 @@ export default {
         endpoints: {
           mcp: "/mcp",
           rest: "/v1/{vtubers,vtubers/:id,vtubers/:id/history,rankings,groups,groups/:name,events,livestreams,status}",
+          openapi: "/openapi.json",
         },
         source: "https://github.com/TaiwanVtuberData/TaiwanVTuberTrackingDataJson",
         note: "Data cached from the upstream project; all credit to TaiwanVtuberData.",
