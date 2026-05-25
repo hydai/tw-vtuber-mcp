@@ -174,11 +174,23 @@ export async function listRankings(db: D1Database, params: RankingParams): Promi
 
 /** All groups (optionally one region), most popular first. */
 export async function listGroups(db: D1Database, nationality?: string): Promise<GroupRow[]> {
-  const sql = nationality
-    ? "SELECT * FROM vtuber_group WHERE nationality = ? ORDER BY popularity DESC NULLS LAST, name ASC"
-    : "SELECT * FROM vtuber_group ORDER BY popularity DESC NULLS LAST, name ASC";
-  const stmt = nationality ? db.prepare(sql).bind(nationality) : db.prepare(sql);
-  const { results } = await stmt.all<GroupRow>();
+  // Filter by *member* nationality: groups.json carries no group-level
+  // nationality, so a group "belongs to" a region if it has any member from
+  // there (this also handles multi-region groups correctly).
+  if (nationality) {
+    const { results } = await db
+      .prepare(
+        `SELECT g.* FROM vtuber_group g
+         WHERE EXISTS (SELECT 1 FROM vtuber v WHERE v.group_name = g.name AND v.nationality = ?)
+         ORDER BY g.popularity DESC NULLS LAST, g.name ASC`,
+      )
+      .bind(nationality)
+      .all<GroupRow>();
+    return results ?? [];
+  }
+  const { results } = await db
+    .prepare("SELECT * FROM vtuber_group ORDER BY popularity DESC NULLS LAST, name ASC")
+    .all<GroupRow>();
   return results ?? [];
 }
 

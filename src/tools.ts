@@ -161,7 +161,7 @@ export const TOOLS: ToolDef[] = [
     inputSchema: eventsSchema.shape,
     run: async (db, raw) => {
       const a = eventsSchema.parse(raw ?? {});
-      const results = await listEvents(db, { type: a.type, window: a.window, nationality: a.region });
+      const results = await listEvents(db, { type: a.type, window: a.window, nationality: a.region, limit: a.limit });
       return { source: SOURCE_REPO, type: a.type, window: a.window ?? "upcoming", count: results.length, results };
     },
   },

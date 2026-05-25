@@ -67,6 +67,16 @@ describe("tools", () => {
     await expect(callTool(env.DB, "list_rankings", { type: "bogus" })).rejects.toThrow();
   });
 
+  it("list_events applies the limit", async () => {
+    await upsertVTubers(env.DB, [
+      v({ id: "g1", name: "Grad1", activity: "graduate" }),
+      v({ id: "g2", name: "Grad2", activity: "graduate" }),
+    ]);
+    const r = (await callTool(env.DB, "list_events", { type: "graduate", limit: 1 })) as { count: number; results: unknown[] };
+    expect(r.results.length).toBe(1);
+    expect(r.count).toBe(1);
+  });
+
   it("get_data_status reports counts and freshness", async () => {
     await writeIngestMeta(env.DB, { vtuberDataUpdateTime: "V1", statisticUpdateTime: "S1", lastCommitSha: "sha", ingestedAt: "t", status: "ok" });
     const r = (await getDataStatus(env.DB)) as { vtuber_count: number; statistic_updated_at: string | null; source: string };

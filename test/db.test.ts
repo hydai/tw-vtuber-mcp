@@ -46,7 +46,7 @@ beforeEach(async () => {
   await upsertVTubers(env.DB, SEED);
   await upsertHistory(env.DB, ALICE_HISTORY);
   await upsertGroups(env.DB, [
-    { name: "GroupA", nationality: "TW", popularity: 12000, livestream_popularity: 5000, video_popularity: 7000, updated_at: "t" },
+    { name: "GroupA", nationality: null, popularity: 12000, livestream_popularity: 5000, video_popularity: 7000, updated_at: "t" },
   ]);
 });
 
@@ -125,6 +125,11 @@ describe("groups", () => {
     const detail = await getGroup(env.DB, "GroupA");
     expect(detail.group?.popularity).toBe(12000);
     expect(detail.members.map((m) => m.id).sort()).toEqual(["alice", "bob"]);
+  });
+
+  it("filters by member nationality even when the group's own nationality is null", async () => {
+    expect((await listGroups(env.DB, "TW")).map((g) => g.name)).toEqual(["GroupA"]); // alice/bob are TW
+    expect(await listGroups(env.DB, "JP")).toEqual([]); // GroupA has no JP members
   });
 });
 
