@@ -12,6 +12,11 @@
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["VTuberMCP"] }],
 
+  // Per-IP rate limiting (free binding; per-colo, 60s window).
+  "ratelimits": [
+    { "name": "RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 120, "period": 60 } }
+  ],
+
   // Upstream data source. Change-detection uses the raw URL (not rate-limited
   // like the GitHub API); bulk file fetches use the jsDelivr CDN mirror.
   "vars": {
@@ -39,6 +44,4 @@
   // Daily ingestion (UTC). 21:00 UTC ≈ 05:00 Taiwan; adjust as desired.
   "triggers": { "crons": ["0 21 * * *"] }
 
-  // Added in later phases:
-  // - ratelimits — Phase 7 (REST + rate limiting)
 }

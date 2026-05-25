@@ -1,5 +1,6 @@
 import { runIngest } from "./ingest";
 import { VTuberMCP } from "./mcp";
+import { handleRest, jsonResponse, CORS } from "./rest";
 
 // Re-export the Durable Object class so the runtime can find it.
 export { VTuberMCP };
@@ -7,27 +8,45 @@ export { VTuberMCP };
 /**
  * Worker entry point.
  *
- * - `fetch`: serves `/mcp` (Streamable HTTP MCP) and `/v1/*` (REST, later phase).
+ * - `fetch`: per-IP rate limit -> `/mcp` (MCP) | `/v1/*` (REST) | root info.
  * - `scheduled`: daily ingestion from the upstream data source.
  */
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: CORS });
+    }
+
+    // Per-IP rate limiting (Workers Rate Limiting binding; per-colo, 60s window).
+    const ip = request.headers.get("cf-connecting-ip") ?? "anon";
+    const { success } = await env.RATE_LIMITER.limit({ key: ip });
+    if (!success) {
+      return jsonResponse({ error: "rate limited", retry_after_seconds: 60 }, 429, { "Retry-After": "60" });
+    }
+
     if (url.pathname === "/mcp" || url.pathname.startsWith("/mcp/")) {
       return VTuberMCP.serve("/mcp", { binding: "VTUBER_MCP" }).fetch(request, env, ctx);
     }
 
-    if (url.pathname === "/" || url.pathname === "/v1/status") {
-      return Response.json({
+    const rest = await handleRest(request, env, ctx);
+    if (rest) return rest;
+
+    if (url.pathname === "/") {
+      return jsonResponse({
         service: "tw-vtuber-mcp",
         status: "ok",
-        endpoints: { mcp: "/mcp", rest: "/v1/*" },
+        endpoints: {
+          mcp: "/mcp",
+          rest: "/v1/{vtubers,vtubers/:id,vtubers/:id/history,rankings,groups,groups/:name,events,livestreams,status}",
+        },
         source: "https://github.com/TaiwanVtuberData/TaiwanVTuberTrackingDataJson",
+        note: "Data cached from the upstream project; all credit to TaiwanVtuberData.",
       });
     }
 
-    return new Response("Not found", { status: 404 });
+    return jsonResponse({ error: "not found" }, 404);
   },
 
   async scheduled(_controller: ScheduledController, env: Env, _ctx: ExecutionContext): Promise<void> {
