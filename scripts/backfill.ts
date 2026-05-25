@@ -226,11 +226,28 @@ async function main(): Promise<void> {
   }
 
   log(`applying ${files.length} files to D1 "${DB_NAME}" (remote)…`);
+  const failed: string[] = [];
   for (let i = 0; i < files.length; i++) {
     log(`[${i + 1}/${files.length}] ${path.basename(files[i]!)}`);
-    await runCmd("npx", ["wrangler", "d1", "execute", DB_NAME, "--remote", "--file", files[i]!]);
+    let ok = false;
+    for (let attempt = 1; attempt <= 3 && !ok; attempt++) {
+      try {
+        await runCmd("npx", ["wrangler", "d1", "execute", DB_NAME, "--remote", "--file", files[i]!]);
+        ok = true;
+      } catch (e) {
+        // D1's API 7403s transiently; the upsert is idempotent, so just retry.
+        log(`  attempt ${attempt}/3 failed: ${(e as Error).message.slice(0, 160)}`);
+        if (attempt < 3) await sleep(1500 * attempt);
+      }
+    }
+    if (!ok) failed.push(files[i]!);
   }
-  log("done.");
+  if (failed.length) {
+    log(`${failed.length} file(s) failed after retries; re-run (idempotent) to finish: ${failed.map((f) => path.basename(f)).join(", ")}`);
+    process.exitCode = 1;
+  } else {
+    log("done.");
+  }
 }
 
 main().catch((e) => {
