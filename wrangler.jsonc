@@ -6,6 +6,11 @@
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
 
+  // Public custom domain. Required for the Cache API to actually cache
+  // (caching is a no-op on *.workers.dev). Cloudflare auto-provisions the
+  // DNS record + TLS cert for this hostname on deploy.
+  "routes": [{ "pattern": "twvtuber.oshi.tw", "custom_domain": true }],
+
   // MCP server runs as a Durable Object (McpAgent, per-session, SQLite-backed).
   "durable_objects": {
     "bindings": [{ "name": "VTUBER_MCP", "class_name": "VTuberMCP" }]
