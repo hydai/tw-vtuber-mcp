@@ -28,10 +28,12 @@
   // R2: full-fidelity raw-snapshot archive (re-derive history if schema changes).
   "r2_buckets": [
     { "binding": "RAW_ARCHIVE", "bucket_name": "tw-vtuber-raw" }
-  ]
+  ],
+
+  // Daily ingestion (UTC). 21:00 UTC ≈ 05:00 Taiwan; adjust as desired.
+  "triggers": { "crons": ["0 21 * * *"] }
 
   // Added in later phases:
   // - durable_objects + migrations (McpAgent) — Phase 6 (MCP)
-  // - triggers.crons — Phase 4 (ingestion)
   // - ratelimits — Phase 7 (REST + rate limiting)
 }

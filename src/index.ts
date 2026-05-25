@@ -1,11 +1,10 @@
+import { runIngest } from "./ingest";
+
 /**
  * Worker entry point.
  *
  * - `fetch`: serves `/mcp` (MCP) and `/v1/*` (REST). Wired up in later phases.
- * - `scheduled`: daily ingestion from the upstream data source. Wired up in Phase 4.
- *
- * Right now this is a minimal placeholder so the project is deployable while we
- * build each layer (parse -> db -> mcp -> rest) incrementally.
+ * - `scheduled`: daily ingestion from the upstream data source.
  */
 export default {
   async fetch(request: Request, _env: Env, _ctx: ExecutionContext): Promise<Response> {
@@ -22,7 +21,8 @@ export default {
     return new Response("Not found", { status: 404 });
   },
 
-  async scheduled(_controller: ScheduledController, _env: Env, _ctx: ExecutionContext): Promise<void> {
-    // Daily ingestion is wired in Phase 4.
+  async scheduled(_controller: ScheduledController, env: Env, _ctx: ExecutionContext): Promise<void> {
+    const result = await runIngest(env);
+    console.log(`[ingest] ${JSON.stringify(result)}`);
   },
 } satisfies ExportedHandler<Env>;
