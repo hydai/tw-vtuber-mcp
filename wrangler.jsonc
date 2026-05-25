@@ -6,6 +6,12 @@
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
 
+  // MCP server runs as a Durable Object (McpAgent, per-session, SQLite-backed).
+  "durable_objects": {
+    "bindings": [{ "name": "VTUBER_MCP", "class_name": "VTuberMCP" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["VTuberMCP"] }],
+
   // Upstream data source. Change-detection uses the raw URL (not rate-limited
   // like the GitHub API); bulk file fetches use the jsDelivr CDN mirror.
   "vars": {
@@ -34,6 +40,5 @@
   "triggers": { "crons": ["0 21 * * *"] }
 
   // Added in later phases:
-  // - durable_objects + migrations (McpAgent) — Phase 6 (MCP)
   // - ratelimits — Phase 7 (REST + rate limiting)
 }

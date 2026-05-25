@@ -6,7 +6,10 @@ import type { D1Migration } from "cloudflare:test";
 declare global {
   namespace Cloudflare {
     interface Env {
-      TEST_MIGRATIONS: D1Migration[];
+      // Optional: only present in tests. Keeping it optional means the
+      // production `Env` still satisfies the `Cloudflare.Env` constraint
+      // (e.g. McpAgent<Env>).
+      TEST_MIGRATIONS?: D1Migration[];
     }
   }
 }

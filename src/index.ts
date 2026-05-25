@@ -1,19 +1,28 @@
 import { runIngest } from "./ingest";
+import { VTuberMCP } from "./mcp";
+
+// Re-export the Durable Object class so the runtime can find it.
+export { VTuberMCP };
 
 /**
  * Worker entry point.
  *
- * - `fetch`: serves `/mcp` (MCP) and `/v1/*` (REST). Wired up in later phases.
+ * - `fetch`: serves `/mcp` (Streamable HTTP MCP) and `/v1/*` (REST, later phase).
  * - `scheduled`: daily ingestion from the upstream data source.
  */
 export default {
-  async fetch(request: Request, _env: Env, _ctx: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+
+    if (url.pathname === "/mcp" || url.pathname.startsWith("/mcp/")) {
+      return VTuberMCP.serve("/mcp", { binding: "VTUBER_MCP" }).fetch(request, env, ctx);
+    }
 
     if (url.pathname === "/" || url.pathname === "/v1/status") {
       return Response.json({
         service: "tw-vtuber-mcp",
-        status: "under-construction",
+        status: "ok",
+        endpoints: { mcp: "/mcp", rest: "/v1/*" },
         source: "https://github.com/TaiwanVtuberData/TaiwanVTuberTrackingDataJson",
       });
     }
