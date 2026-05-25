@@ -35,7 +35,7 @@ export const openApiSpec = {
     version: "0.1.0",
     description:
       "Public REST API for Taiwan VTuber data on Cloudflare Workers, with search, rankings, " +
-      "groups, events, real-time livestreams, and an accumulating daily history time-series. " +
+      "groups, events, and an accumulating daily history time-series. " +
       `All data originates from ${SOURCE_REPO} and is re-served with attribution. ` +
       "Public + anonymous; rate-limited to 120 requests/60s per IP. An MCP server exposing the " +
       "same data lives at /mcp.",
@@ -133,18 +133,6 @@ export const openApiSpec = {
         },
       },
     },
-    "/v1/livestreams": {
-      get: {
-        operationId: "listLivestreams",
-        summary: "Current/upcoming livestreams (real-time pass-through, short edge cache)",
-        parameters: [
-          { name: "region", in: "query", required: false, schema: { type: "string", enum: ["all", "TW", "HK", "MY"] } },
-          { name: "debut", in: "query", required: false, schema: { type: "boolean" } },
-          { name: "no_title", in: "query", required: false, schema: { type: "boolean" } },
-        ],
-        responses: { "200": jsonResponse("#/components/schemas/Livestreams", "Livestreams") },
-      },
-    },
     "/v1/status": {
       get: {
         operationId: "getDataStatus",
@@ -206,18 +194,6 @@ export const openApiSpec = {
           updated_at: { type: "string", nullable: true },
         },
       },
-      Livestream: {
-        type: "object",
-        properties: {
-          id: { type: "string", description: "Owning VTuber GUID" },
-          name: { type: "string" },
-          imgUrl: { type: "string", nullable: true },
-          title: { type: "string", nullable: true },
-          videoUrl: { type: "string" },
-          thumbnailUrl: { type: "string", nullable: true },
-          startTime: { type: "string", format: "date-time" },
-        },
-      },
       VTuberList: envelope({ count: { type: "integer" }, results: { type: "array", items: { $ref: "#/components/schemas/VTuber" } } }),
       RankingList: envelope({ type: { type: "string" }, count: { type: "integer" }, results: { type: "array", items: { $ref: "#/components/schemas/VTuber" } } }),
       EventList: envelope({ type: { type: "string" }, window: { type: "string" }, count: { type: "integer" }, results: { type: "array", items: { $ref: "#/components/schemas/VTuber" } } }),
@@ -225,7 +201,6 @@ export const openApiSpec = {
       History: envelope({ vtuber_id: { type: "string", nullable: true }, name: { type: "string" }, history: { type: "array", items: { $ref: "#/components/schemas/HistoryPoint" } } }),
       GroupList: envelope({ count: { type: "integer" }, groups: { type: "array", items: { $ref: "#/components/schemas/Group" } } }),
       GroupDetail: envelope({ group: { allOf: [{ $ref: "#/components/schemas/Group" }], nullable: true }, members: { type: "array", items: { $ref: "#/components/schemas/VTuber" } } }),
-      Livestreams: envelope({ livestreams: { type: "array", items: { $ref: "#/components/schemas/Livestream" } } }),
       Status: envelope({
         vtuber_count: { type: "integer" },
         upstream_data_updated_at: { type: "string", nullable: true },

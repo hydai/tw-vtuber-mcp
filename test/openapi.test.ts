@@ -24,15 +24,14 @@ describe("openApiSpec", () => {
       "/v1/groups",
       "/v1/groups/{name}",
       "/v1/events",
-      "/v1/livestreams",
       "/v1/status",
     ]) {
       expect(paths).toContain(p);
     }
   });
 
-  it("covers one path per non-livestream tool (parity with the MCP surface)", () => {
-    // 8 tools; all are reachable over REST (livestreams is REST-only pass-through).
+  it("covers one REST path per tool (parity with the MCP surface)", () => {
+    // 8 tools, each reachable 1:1 over REST.
     expect(TOOLS.length).toBe(8);
     expect(Object.keys(openApiSpec.paths).length).toBeGreaterThanOrEqual(TOOLS.length);
   });

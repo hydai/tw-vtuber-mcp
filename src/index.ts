@@ -36,7 +36,7 @@ export default {
       return VTuberMCP.serve("/mcp", { binding: "VTUBER_MCP" }).fetch(request, env, ctx);
     }
 
-    const rest = await handleRest(request, env, ctx);
+    const rest = await handleRest(request, env);
     if (rest) return rest;
 
     if (url.pathname === "/") {
@@ -45,7 +45,7 @@ export default {
         status: "ok",
         endpoints: {
           mcp: "/mcp",
-          rest: "/v1/{vtubers,vtubers/:id,vtubers/:id/history,rankings,groups,groups/:name,events,livestreams,status}",
+          rest: "/v1/{vtubers,vtubers/:id,vtubers/:id/history,rankings,groups,groups/:name,events,status}",
           openapi: "/openapi.json",
         },
         source: "https://github.com/TaiwanVtuberData/TaiwanVTuberTrackingDataJson",

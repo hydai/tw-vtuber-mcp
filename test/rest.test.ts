@@ -1,6 +1,6 @@
-import { env, createExecutionContext } from "cloudflare:test";
+import { env } from "cloudflare:test";
 import { describe, it, expect, beforeEach } from "vitest";
-import { handleRest, buildLivestreamUpstreamUrl } from "../src/rest";
+import { handleRest } from "../src/rest";
 import { upsertVTubers, upsertGroups } from "../src/ingest";
 import type { VTuberRow } from "../src/types";
 
@@ -27,7 +27,7 @@ function req(path: string): Request {
   return new Request(`http://api.local${path}`);
 }
 async function getJson(path: string): Promise<{ status: number; body: Record<string, unknown> }> {
-  const r = await handleRest(req(path), env, createExecutionContext());
+  const r = await handleRest(req(path), env);
   return { status: r!.status, body: (await r!.json()) as Record<string, unknown> };
 }
 
@@ -72,26 +72,12 @@ describe("handleRest", () => {
   });
 
   it("returns null for non-/v1 paths", async () => {
-    const r = await handleRest(req("/something"), env, createExecutionContext());
+    const r = await handleRest(req("/something"), env);
     expect(r).toBeNull();
   });
 
   it("sets permissive CORS headers", async () => {
-    const r = await handleRest(req("/v1/status"), env, createExecutionContext());
+    const r = await handleRest(req("/v1/status"), env);
     expect(r!.headers.get("Access-Control-Allow-Origin")).toBe("*");
-  });
-});
-
-describe("buildLivestreamUpstreamUrl", () => {
-  it("puts a whitelisted region in the path", () => {
-    expect(buildLivestreamUpstreamUrl(env, { region: "TW" })).toContain("/TW/livestreams/all.json");
-  });
-
-  it("falls back to 'all' for regions without a livestream directory (e.g. JP)", () => {
-    expect(buildLivestreamUpstreamUrl(env, { region: "JP" })).toContain("/all/livestreams/all.json");
-  });
-
-  it("applies debut + no-title modifiers", () => {
-    expect(buildLivestreamUpstreamUrl(env, { debut: true, noTitle: true })).toContain("/all/livestreams/debut-no-title.json");
   });
 });

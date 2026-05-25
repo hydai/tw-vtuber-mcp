@@ -68,9 +68,6 @@ curl "https://twvtuber.oshi.tw/v1/vtubers/李聽/history?from=2026-05-01"
 # Search: active TW VTubers with >100k subscribers, by 7-day view growth
 curl "https://twvtuber.oshi.tw/v1/vtubers?region=TW&activity=active&min_subscribers=100000&sort_by=growth_7d&order=desc&limit=10"
 
-# Who is live right now (real-time pass-through)
-curl "https://twvtuber.oshi.tw/v1/livestreams?region=TW"
-
 # Upcoming debut anniversaries
 curl "https://twvtuber.oshi.tw/v1/events?type=anniversary&window=upcoming&region=TW"
 ```
@@ -115,7 +112,6 @@ A `vtuber` object:
 | `GET /v1/rankings?type=&region=&limit=` | `list_rankings` |
 | `GET /v1/groups?region=` · `GET /v1/groups/:name` | `list_groups` / `get_group` |
 | `GET /v1/events?type=&window=&region=` | `list_events` |
-| `GET /v1/livestreams?region=&debut=&no_title=` | live now (real-time pass-through) |
 | `GET /v1/status` | `get_data_status` |
 
 **OpenAPI spec:** `https://twvtuber.oshi.tw/openapi.json` — import into Swagger UI, Postman, or any codegen tool. (Source: [`src/openapi.ts`](src/openapi.ts), served live.)
@@ -124,7 +120,7 @@ A `vtuber` object:
 
 - **Daily ingestion** (Cron, `scheduled()`): polls the upstream `update-time.json` as a cheap change-signal, then fetches the `all`-region aggregate JSON, parses/merges it, and upserts into **D1** (SQLite). Per-region data is derived via the `nationality` column. Raw files are archived to **R2**. A history row per VTuber per day accumulates the time-series.
 - **Query layer** (D1): a current snapshot table + a `(vtuber_id, date)` history table, indexed for search/sort/rankings.
-- **Serving** (`fetch()`): `/mcp` (Streamable HTTP MCP via `McpAgent`) and `/v1/*` (REST) share one tool layer. Per-IP rate limiting + Cache-API response caching. Time-sensitive `/v1/livestreams` is passed through to the upstream CDN with a short edge cache.
+- **Serving** (`fetch()`): `/mcp` (Streamable HTTP MCP via `McpAgent`) and `/v1/*` (REST) share one tool layer. Per-IP rate limiting + Cache-API response caching.
 
 ## Historical backfill
 
