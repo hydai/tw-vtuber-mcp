@@ -126,12 +126,26 @@ A `vtuber` object:
 - **Query layer** (D1): a current snapshot table + a `(vtuber_id, date)` history table, indexed for search/sort/rankings.
 - **Serving** (`fetch()`): `/mcp` (Streamable HTTP MCP via `McpAgent`) and `/v1/*` (REST) share one tool layer. Per-IP rate limiting + Cache-API response caching. Time-sensitive `/v1/livestreams` is passed through to the upstream CDN with a short edge cache.
 
+## Historical backfill
+
+The daily Cron only accumulates history going forward. To bootstrap the time-series, [`scripts/backfill.ts`](scripts/backfill.ts) reconstructs it from the upstream repo's **git history** — every commit is a past snapshot. It enumerates the commits that touched the roster file, takes one snapshot per UTC day, fetches that day's four `all`-region files pinned at the commit SHA, reuses the same parsers as the Cron, and writes idempotent upserts into `vtuber_history` via `wrangler`.
+
+```bash
+npm run backfill -- --dry-run --limit 3   # fetch a few recent days, print sample SQL, no writes
+npm run backfill                          # full run: every reachable day -> remote D1
+npm run backfill -- --from 2026-03-01     # bounded window; also --to / --limit / --no-apply
+```
+
+It runs locally (not in a Worker), so the subrequest/CPU limits don't apply, and the upserts are idempotent, so it is safe to re-run or resume. Requires an authenticated `gh` and `wrangler`.
+
+> **Reach:** the upstream repo reset its git history on 2025-12-24 ("Initial commit"), so only ~5 months are recoverable from commits — earlier data is unavailable. Once backfilled, the daily Cron keeps extending the series (making this service the durable long-term archive); re-running the script after any future upstream reset tops up the gap.
+
 ## Development
 
 ```bash
 npm install
 npm run cf-types     # generate Cloudflare binding types
-npm test             # 60 unit/integration tests (vitest + workers pool)
+npm test             # unit/integration tests (vitest + workers pool)
 npm run dev          # local dev server
 ```
 
