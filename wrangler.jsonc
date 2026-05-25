@@ -1,0 +1,37 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "tw-vtuber-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-05-26",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+
+  // Upstream data source. Change-detection uses the raw URL (not rate-limited
+  // like the GitHub API); bulk file fetches use the jsDelivr CDN mirror.
+  "vars": {
+    "DATA_RAW_URL": "https://raw.githubusercontent.com/TaiwanVtuberData/TaiwanVTuberTrackingDataJson",
+    "DATA_CDN_URL": "https://cdn.jsdelivr.net/gh/TaiwanVtuberData/TaiwanVTuberTrackingDataJson",
+    "DATA_SOURCE_REPO": "https://github.com/TaiwanVtuberData/TaiwanVTuberTrackingDataJson"
+  },
+
+  // D1: queryable layer (current snapshot + daily history). database_id is filled
+  // in by `wrangler d1 create tw-vtuber` (Phase 1 resource creation).
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tw-vtuber",
+      "database_id": "6308879c-1f54-4238-b21d-a77f2e45f85a",
+      "migrations_dir": "./migrations"
+    }
+  ],
+
+  // R2: full-fidelity raw-snapshot archive (re-derive history if schema changes).
+  "r2_buckets": [
+    { "binding": "RAW_ARCHIVE", "bucket_name": "tw-vtuber-raw" }
+  ]
+
+  // Added in later phases:
+  // - durable_objects + migrations (McpAgent) — Phase 6 (MCP)
+  // - triggers.crons — Phase 4 (ingestion)
+  // - ratelimits — Phase 7 (REST + rate limiting)
+}
