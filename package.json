@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Public MCP server + REST API for Taiwan VTuber data on Cloudflare",
+  "license": "MIT",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
