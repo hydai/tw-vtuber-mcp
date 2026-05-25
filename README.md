@@ -1,26 +1,28 @@
-# TW VTuber Data — MCP Server + REST API
+# TW VTuber Data — MCP 伺服器 + REST API
+
+**繁體中文** | [English](README-en.md)
 
 [![CI](https://github.com/hydai/tw-vtuber-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/hydai/tw-vtuber-mcp/actions/workflows/ci.yml)
 
-A **public** [Model Context Protocol](https://modelcontextprotocol.io) server and REST API for Taiwan VTuber data on Cloudflare Workers. It lets AI agents (and ordinary HTTP clients) search, filter, and explore Taiwan VTuber stats — including **historical trends** that the upstream source does not publish.
+一個跑在 Cloudflare Workers 上、**公開**的 [Model Context Protocol](https://modelcontextprotocol.io) 伺服器與 REST API，提供台灣 VTuber 資料。讓 AI agent（以及一般 HTTP 用戶端）搜尋、篩選、探索台灣 VTuber 數據——包含上游來源未發布的**歷史趨勢**。
 
-**Live instance:** `https://twvtuber.oshi.tw` — MCP at `/mcp`, REST at `/v1/*` (currently serving 3,000+ VTubers).
+**線上服務：** `https://twvtuber.oshi.tw` — MCP 在 `/mcp`，REST 在 `/v1/*`（目前收錄 3,000+ 位 VTuber）。
 
-## Data source & attribution
+## 資料來源與標註
 
-All VTuber data originates from **[TaiwanVtuberData/TaiwanVTuberTrackingDataJson](https://github.com/TaiwanVtuberData/TaiwanVTuberTrackingDataJson)** (rendered by [taiwanvtuberdata.github.io](https://taiwanvtuberdata.github.io/)). This service caches and re-serves that data, adding a queryable layer and an accumulating daily time-series. **All credit for data collection belongs to the upstream project.** Every response carries a `source` field linking back.
+所有 VTuber 資料皆源自 **[TaiwanVtuberData/TaiwanVTuberTrackingDataJson](https://github.com/TaiwanVtuberData/TaiwanVTuberTrackingDataJson)**（由 [taiwanvtuberdata.github.io](https://taiwanvtuberdata.github.io/) 呈現）。本服務快取並重新提供這些資料，額外加上可查詢層與每日累積的時間序列。**資料蒐集的所有功勞歸於上游專案。** 每個回應都帶有 `source` 欄位連回來源。
 
-## Quick start
+## 快速開始
 
-### MCP (AI agents)
+### MCP（AI agent）
 
-Streamable HTTP, authless. With Claude Code:
+Streamable HTTP，免驗證。使用 Claude Code：
 
 ```bash
 claude mcp add --transport http tw-vtuber https://twvtuber.oshi.tw/mcp
 ```
 
-Then ask, e.g. *"Which Taiwan VTubers gained the most views this week?"* or *"Show 李聽's subscriber history."* — the agent calls the [tools](#mcp-tools) below. Any MCP client works; point it at `https://twvtuber.oshi.tw/mcp`.
+接著就能問，例如：*「本週哪些台灣 VTuber 觀看數成長最多？」* 或 *「顯示李聽的訂閱數歷史。」*——agent 會呼叫下方的[工具](#mcp-工具)。任何 MCP 用戶端都適用，指向 `https://twvtuber.oshi.tw/mcp` 即可。
 
 ### REST
 
@@ -39,7 +41,7 @@ curl https://twvtuber.oshi.tw/v1/status
 ```
 
 ```bash
-# Top Taiwan VTubers by subscribers
+# 訂閱數最高的台灣 VTuber
 curl "https://twvtuber.oshi.tw/v1/rankings?type=top_subscribers&region=TW&limit=2"
 ```
 
@@ -55,24 +57,24 @@ curl "https://twvtuber.oshi.tw/v1/rankings?type=top_subscribers&region=TW&limit=
 }
 ```
 
-More examples:
+更多範例：
 
 ```bash
-# One VTuber by name (URL-encoded) or id
+# 用名稱（需 URL 編碼）或 id 查單一 VTuber
 curl "https://twvtuber.oshi.tw/v1/vtubers/%E6%9D%8E%E8%81%BD"          # 李聽
 curl "https://twvtuber.oshi.tw/v1/vtubers/1c5619a4ece046dd8ba68ed343489ca3"
 
-# Daily history time-series — unique to this service
+# 每日歷史時間序列——本服務獨有
 curl "https://twvtuber.oshi.tw/v1/vtubers/李聽/history?from=2026-05-01"
 
-# Search: active TW VTubers with >100k subscribers, by 7-day view growth
+# 搜尋：訂閱數 >10 萬、活躍的台灣 VTuber，依 7 日觀看成長排序
 curl "https://twvtuber.oshi.tw/v1/vtubers?region=TW&activity=active&min_subscribers=100000&sort_by=growth_7d&order=desc&limit=10"
 
-# Upcoming debut anniversaries
+# 即將到來的出道週年
 curl "https://twvtuber.oshi.tw/v1/events?type=anniversary&window=upcoming&region=TW"
 ```
 
-A `vtuber` object:
+`vtuber` 物件：
 
 ```json
 {
@@ -88,24 +90,24 @@ A `vtuber` object:
 }
 ```
 
-> Note: subscriber/view/follower fields are `null` when the platform hides the count. Public, anonymous access is rate-limited to 120 requests/60s per IP.
+> 注意：當平台隱藏數字時，訂閱／觀看／追蹤欄位為 `null`。公開匿名存取，每個 IP 限流 120 requests/60s。
 
-## MCP tools
+## MCP 工具
 
-| Tool | Purpose | Key args |
-|------|---------|----------|
-| `search_vtubers` | search / filter / sort | `query`, `region`, `activity`, `group`, `min_subscribers`, `sort_by`, `order`, `limit` |
-| `get_vtuber` | one VTuber | `id_or_name` |
-| `get_vtuber_history` | daily time-series (unique) | `id_or_name`, `from`, `to` |
-| `list_rankings` | rankings | `type` (`top_subscribers`/`top_views`/`growing_7d`/`growing_30d`/`trending`), `region`, `limit` |
-| `list_groups`, `get_group` | groups/agencies + members | `region` / `name` |
-| `list_events` | debut / anniversary / graduate | `type`, `window` (`recent`/`upcoming`), `region` |
-| `get_data_status` | data freshness + counts | — |
+| 工具 | 用途 | 主要參數 |
+|------|------|----------|
+| `search_vtubers` | 搜尋 / 篩選 / 排序 | `query`、`region`、`activity`、`group`、`min_subscribers`、`sort_by`、`order`、`limit` |
+| `get_vtuber` | 單一 VTuber | `id_or_name` |
+| `get_vtuber_history` | 每日時間序列（獨有） | `id_or_name`、`from`、`to` |
+| `list_rankings` | 排行榜 | `type`（`top_subscribers`/`top_views`/`growing_7d`/`growing_30d`/`trending`）、`region`、`limit` |
+| `list_groups`、`get_group` | 團體／事務所 + 成員 | `region` / `name` |
+| `list_events` | 出道 / 週年 / 畢業 | `type`、`window`（`recent`/`upcoming`）、`region` |
+| `get_data_status` | 資料新鮮度 + 數量 | — |
 
-## REST reference
+## REST 參考
 
-| Endpoint | Maps to |
-|----------|---------|
+| 端點 | 對應工具 |
+|------|---------|
 | `GET /v1/vtubers?query=&region=&activity=&group=&min_subscribers=&sort_by=&order=&limit=&offset=` | `search_vtubers` |
 | `GET /v1/vtubers/:idOrName` | `get_vtuber` |
 | `GET /v1/vtubers/:idOrName/history?from=&to=` | `get_vtuber_history` |
@@ -114,54 +116,54 @@ A `vtuber` object:
 | `GET /v1/events?type=&window=&region=` | `list_events` |
 | `GET /v1/status` | `get_data_status` |
 
-**OpenAPI spec:** `https://twvtuber.oshi.tw/openapi.json` — import into Swagger UI, Postman, or any codegen tool. (Source: [`src/openapi.ts`](src/openapi.ts), served live.)
+**OpenAPI spec：** `https://twvtuber.oshi.tw/openapi.json` — 可匯入 Swagger UI、Postman 或任何 codegen 工具。（原始碼：[`src/openapi.ts`](src/openapi.ts)，即時提供。）
 
-## Architecture
+## 架構
 
-- **Daily ingestion** (Cron, `scheduled()`): polls the upstream `update-time.json` as a cheap change-signal, then fetches the `all`-region aggregate JSON, parses/merges it, and upserts into **D1** (SQLite). Per-region data is derived via the `nationality` column. Raw files are archived to **R2**. A history row per VTuber per day accumulates the time-series.
-- **Query layer** (D1): a current snapshot table + a `(vtuber_id, date)` history table, indexed for search/sort/rankings.
-- **Serving** (`fetch()`): `/mcp` (Streamable HTTP MCP via `McpAgent`) and `/v1/*` (REST) share one tool layer. Per-IP rate limiting + Cache-API response caching.
+- **每日攝取**（Cron，`scheduled()`）：輪詢上游 `update-time.json` 作為低成本的變更訊號，接著抓取 `all` 區的聚合 JSON，解析／合併後 upsert 進 **D1**（SQLite）。各地區資料透過 `nationality` 欄位推導。原始檔封存至 **R2**。每位 VTuber 每天一列歷史，累積成時間序列。
+- **查詢層**（D1）：一張現況快照表 + 一張 `(vtuber_id, date)` 歷史表，並建立索引以支援搜尋／排序／排行榜。
+- **服務**（`fetch()`）：`/mcp`（透過 `McpAgent` 的 Streamable HTTP MCP）與 `/v1/*`（REST）共用同一套工具層。每 IP 限流 + Cache API 回應快取。
 
-## Historical backfill
+## 歷史回填
 
-The daily Cron only accumulates history going forward. To bootstrap the time-series, [`scripts/backfill.ts`](scripts/backfill.ts) reconstructs it from the upstream repo's **git history** — every commit is a past snapshot. It enumerates the commits that touched the roster file, takes one snapshot per UTC day, fetches that day's four `all`-region files pinned at the commit SHA, reuses the same parsers as the Cron, and writes idempotent upserts into `vtuber_history` via `wrangler`.
+每日 Cron 只會從現在開始往後累積歷史。為了補齊時間序列，[`scripts/backfill.ts`](scripts/backfill.ts) 會從上游 repo 的 **git 歷史**重建——每個 commit 都是一份過去的快照。它列舉動到 roster 檔的 commit，每個 UTC 日取一份快照，抓取該 commit SHA 下當天的四個 `all` 區檔案，重用與 Cron 相同的解析器，再透過 `wrangler` 將冪等 upsert 寫入 `vtuber_history`。
 
 ```bash
-npm run backfill -- --dry-run --limit 3   # fetch a few recent days, print sample SQL, no writes
-npm run backfill                          # full run: every reachable day -> remote D1
-npm run backfill -- --from 2026-03-01     # bounded window; also --to / --limit / --no-apply
+npm run backfill -- --dry-run --limit 3   # 抓取最近幾天、印出 SQL 範例、不寫入
+npm run backfill                          # 完整執行：所有可取得的天數 -> 遠端 D1
+npm run backfill -- --from 2026-03-01     # 限定區間；也支援 --to / --limit / --no-apply
 ```
 
-It runs locally (not in a Worker), so the subrequest/CPU limits don't apply, and the upserts are idempotent, so it is safe to re-run or resume. Requires an authenticated `gh` and `wrangler`.
+它在本地執行（不在 Worker 內），因此 subrequest／CPU 限制不適用；upsert 為冪等，可安全重跑或續跑。需要已登入的 `gh` 與 `wrangler`。
 
-> **Reach:** the upstream repo reset its git history on 2025-12-24 ("Initial commit"), so only ~5 months are recoverable from commits — earlier data is unavailable. Once backfilled, the daily Cron keeps extending the series (making this service the durable long-term archive); re-running the script after any future upstream reset tops up the gap.
+> **可回溯範圍：** 上游 repo 在 2025-12-24 重置了 git 歷史（「Initial commit」），所以從 commit 只能回溯約 5 個月——更早的資料無法取得。回填後，每日 Cron 會持續延長序列（使本服務成為長期存檔）；未來上游若再次重置，重跑此腳本即可補上缺口。
 
-## Development
+## 開發
 
 ```bash
 npm install
-npm run cf-types     # generate Cloudflare binding types
-npm test             # unit/integration tests (vitest + workers pool)
-npm run dev          # local dev server
+npm run cf-types     # 產生 Cloudflare binding 型別
+npm test             # 單元／整合測試（vitest + workers pool）
+npm run dev          # 本地開發伺服器
 ```
 
-## Deployment
+## 部署
 
-Prerequisites:
-1. **R2 enabled** on the account (for the raw archive).
-2. **A custom domain** routed to the Worker — required for the Cache API to function (`*.workers.dev` caching is a no-op). Set it via `routes` + `custom_domain` in `wrangler.jsonc` or the dashboard.
+前置需求：
+1. 帳號已**啟用 R2**（供原始檔封存）。
+2. 一個指向 Worker 的**自訂網域**——Cache API 運作所必需（`*.workers.dev` 的快取無效）。可在 `wrangler.jsonc` 的 `routes` + `custom_domain` 或儀表板設定。
 
 ```bash
-npm run db:migrate:remote        # apply D1 schema to the remote database
+npm run db:migrate:remote        # 套用 D1 schema 到遠端資料庫
 npm run deploy                   # wrangler deploy
 ```
 
-The daily Cron (`0 21 * * *` UTC) then ingests automatically. Trigger the first ingest manually from the dashboard, or wait for the schedule.
+之後每日 Cron（`0 21 * * *` UTC）會自動攝取。可從儀表板手動觸發第一次攝取，或等待排程。
 
-## Cost
+## 成本
 
-Runs within the Workers Paid plan's included allowances (~$5/month flat) up to ~1M requests/month; D1/R2/Cache/rate-limiting stay inside free/included tiers. Ingestion needs the Paid plan's CPU (parsing ~1 MB JSON exceeds the free 10 ms limit).
+在 Workers Paid 方案的內含額度內運作（約 $5／月固定費），可支撐到每月約 100 萬次請求；D1／R2／Cache／限流皆落在免費／內含層級。攝取需要 Paid 方案的 CPU（解析約 1 MB 的 JSON 會超過免費的 10 ms 限制）。
 
-## License
+## 授權
 
-[MIT](LICENSE) for the source code. The VTuber data belongs to the [upstream project](https://github.com/TaiwanVtuberData/TaiwanVTuberTrackingDataJson).
+原始碼採用 [MIT](LICENSE) 授權。VTuber 資料屬於[上游專案](https://github.com/TaiwanVtuberData/TaiwanVTuberTrackingDataJson)。
