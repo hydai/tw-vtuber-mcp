@@ -118,6 +118,8 @@ curl "https://twvtuber.oshi.tw/v1/events?type=anniversary&window=upcoming&region
 
 **OpenAPI spec：** `https://twvtuber.oshi.tw/openapi.json` — 可匯入 Swagger UI、Postman 或任何 codegen 工具。（原始碼：[`src/openapi.ts`](src/openapi.ts)，即時提供。）
 
+**首頁與 llms.txt：** 用瀏覽器開 `https://twvtuber.oshi.tw/` 會看到 HTML 說明頁；API 用戶端（如 `curl`，預設 `Accept: */*`）對同一網址仍取得原本的 JSON。`https://twvtuber.oshi.tw/llms.txt` 提供給 AI 的精簡服務概覽（[llms.txt](https://llmstxt.org) 慣例）。
+
 ## 架構
 
 - **每日攝取**（Cron，`scheduled()`）：輪詢上游 `update-time.json` 作為低成本的變更訊號，接著抓取 `all` 區的聚合 JSON，解析／合併後 upsert 進 **D1**（SQLite）。各地區資料透過 `nationality` 欄位推導。原始檔封存至 **R2**。每位 VTuber 每天一列歷史，累積成時間序列。
