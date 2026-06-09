@@ -2,6 +2,7 @@ import { runIngest } from "./ingest";
 import { VTuberMCP } from "./mcp";
 import { handleRest, jsonResponse, CORS } from "./rest";
 import { openApiSpec } from "./openapi";
+import { renderDocsHtml, renderLlmsTxt } from "./docs";
 
 // Re-export the Durable Object class so the runtime can find it.
 export { VTuberMCP };
@@ -25,6 +26,14 @@ export default {
       return jsonResponse(openApiSpec, 200, { "Cache-Control": "public, max-age=3600" });
     }
 
+    // llms.txt — public metadata for AI agents, exempt from rate limiting, cacheable.
+    if (url.pathname === "/llms.txt") {
+      return new Response(renderLlmsTxt(), {
+        status: 200,
+        headers: { "Content-Type": "text/plain; charset=utf-8", ...CORS, "Cache-Control": "public, max-age=3600" },
+      });
+    }
+
     // Per-IP rate limiting (Workers Rate Limiting binding; per-colo, 60s window).
     const ip = request.headers.get("cf-connecting-ip") ?? "anon";
     const { success } = await env.RATE_LIMITER.limit({ key: ip });
@@ -40,17 +49,32 @@ export default {
     if (rest) return rest;
 
     if (url.pathname === "/") {
-      return jsonResponse({
-        service: "tw-vtuber-mcp",
-        status: "ok",
-        endpoints: {
-          mcp: "/mcp",
-          rest: "/v1/{vtubers,vtubers/:id,vtubers/:id/history,rankings,groups,groups/:name,events,status}",
-          openapi: "/openapi.json",
+      // Content negotiation: browsers (Accept: text/html) get the human-readable
+      // HTML docs page; API clients (curl's default Accept: */*, or
+      // application/json) keep the existing JSON contract unchanged.
+      const accept = request.headers.get("Accept") ?? "";
+      if (accept.includes("text/html")) {
+        return new Response(renderDocsHtml(), {
+          status: 200,
+          headers: { "Content-Type": "text/html; charset=utf-8", ...CORS, "Cache-Control": "public, max-age=3600" },
+        });
+      }
+      return jsonResponse(
+        {
+          service: "tw-vtuber-mcp",
+          status: "ok",
+          endpoints: {
+            mcp: "/mcp",
+            rest: "/v1/{vtubers,vtubers/:id,vtubers/:id/history,rankings,groups,groups/:name,events,status}",
+            openapi: "/openapi.json",
+            llms: "/llms.txt",
+          },
+          source: "https://github.com/TaiwanVtuberData/TaiwanVTuberTrackingDataJson",
+          note: "Data cached from the upstream project; all credit to TaiwanVtuberData.",
         },
-        source: "https://github.com/TaiwanVtuberData/TaiwanVTuberTrackingDataJson",
-        note: "Data cached from the upstream project; all credit to TaiwanVtuberData.",
-      });
+        200,
+        { "Cache-Control": "public, max-age=3600" },
+      );
     }
 
     return jsonResponse({ error: "not found" }, 404);
