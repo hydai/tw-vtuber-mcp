@@ -69,6 +69,9 @@ export function renderApiDocsHtml(): string {
 Scalar.createApiReference("#app", {
   url: "/openapi.json",
   darkMode: window.matchMedia("(prefers-color-scheme: dark)").matches,
+  agent: {
+    disabled: true,
+  },
 });
 document.querySelector("#fallback")?.remove();
 </script>

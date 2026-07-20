@@ -76,6 +76,12 @@ describe("renderApiDocsHtml", () => {
     expect(html).not.toContain("proxyUrl");
   });
 
+  it("emits a disabled Scalar AI agent configuration", () => {
+    expect(html).toContain(`agent: {
+    disabled: true,
+  },`);
+  });
+
   it("keeps useful navigation when JavaScript or the CDN is unavailable", () => {
     expect(html).toContain('id="fallback"');
     expect(html).toContain("<noscript>");
