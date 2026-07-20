@@ -85,14 +85,36 @@ describe("renderApiDocsHtml", () => {
   });
 });
 
-async function hit(path: string, headers: Record<string, string> = {}): Promise<Response> {
+async function hit(
+  path: string,
+  headers: Record<string, string> = {},
+  bindings: Env = env,
+): Promise<Response> {
   const ctx = createExecutionContext();
-  const res = await worker.fetch(new Request(`http://api.local${path}`, { headers }), env, ctx);
+  const res = await worker.fetch(new Request(`http://api.local${path}`, { headers }), bindings, ctx);
   await waitOnExecutionContext(ctx);
   return res;
 }
 
 describe("worker routing: docs surface", () => {
+  it("GET /docs serves Scalar before rate limiting", async () => {
+    const throwingEnv = {
+      RATE_LIMITER: {
+        limit: () => {
+          throw new Error("rate limiter should not be called for /docs");
+        },
+      },
+    } as unknown as Env;
+
+    const res = await hit("/docs", {}, throwingEnv);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/html");
+    expect(res.headers.get("cache-control")).toBe("public, max-age=3600");
+    const html = await res.text();
+    expect(html).toContain("Scalar.createApiReference");
+    expect(html).toContain('url: "/openapi.json"');
+  });
+
   it("GET / with Accept: text/html serves the HTML docs page", async () => {
     const res = await hit("/", { Accept: "text/html" });
     expect(res.status).toBe(200);
@@ -110,6 +132,7 @@ describe("worker routing: docs surface", () => {
       source: string;
     };
     expect(body.service).toBe("tw-vtuber-mcp");
+    expect(body.endpoints.docs).toBe("/docs");
     expect(body.endpoints.llms).toBe("/llms.txt");
     expect(body.endpoints.mcp).toBe("/mcp");
     expect(body.source).toContain("TaiwanVtuberData");

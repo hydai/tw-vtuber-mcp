@@ -2,7 +2,7 @@ import { runIngest } from "./ingest";
 import { VTuberMCP } from "./mcp";
 import { handleRest, jsonResponse, CORS } from "./rest";
 import { openApiSpec } from "./openapi";
-import { renderDocsHtml, renderLlmsTxt } from "./docs";
+import { renderApiDocsHtml, renderDocsHtml, renderLlmsTxt } from "./docs";
 
 // Re-export the Durable Object class so the runtime can find it.
 export { VTuberMCP };
@@ -31,6 +31,14 @@ export default {
       return new Response(renderLlmsTxt(), {
         status: 200,
         headers: { "Content-Type": "text/plain; charset=utf-8", ...CORS, "Cache-Control": "public, max-age=3600" },
+      });
+    }
+
+    // Interactive API reference — public metadata, exempt from rate limiting, cacheable.
+    if (url.pathname === "/docs") {
+      return new Response(renderApiDocsHtml(), {
+        status: 200,
+        headers: { "Content-Type": "text/html; charset=utf-8", ...CORS, "Cache-Control": "public, max-age=3600" },
       });
     }
 
@@ -66,6 +74,7 @@ export default {
           endpoints: {
             mcp: "/mcp",
             rest: "/v1/{vtubers,vtubers/:id,vtubers/:id/history,rankings,groups,groups/:name,events,status}",
+            docs: "/docs",
             openapi: "/openapi.json",
             llms: "/llms.txt",
           },
