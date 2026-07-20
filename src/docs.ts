@@ -31,6 +31,51 @@ const STYLE = `
   footer { margin-top:3rem; color:var(--muted); font-size:.85rem; }
 `;
 
+const SCALAR_CDN_URL = "https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.62.9";
+
+const API_DOCS_STYLE = `
+  :root { color-scheme: light dark; --fg:#1a1a1a; --bg:#fff; --muted:#666; --link:#0061d5; }
+  @media (prefers-color-scheme: dark) { :root { --fg:#e8e8e8; --bg:#161616; --muted:#aaa; --link:#62a8ff; } }
+  * { box-sizing: border-box; }
+  body { margin:0; color:var(--fg); background:var(--bg); font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans TC","PingFang TC",sans-serif; }
+  #fallback { max-width:720px; margin:0 auto; padding:3rem 1.25rem; }
+  #fallback h1 { margin:0 0 .5rem; font-size:1.6rem; }
+  #fallback p { color:var(--muted); }
+  #fallback a { color:var(--link); }
+`;
+
+/** Interactive REST API reference backed by the live `/openapi.json`. */
+export function renderApiDocsHtml(): string {
+  return `<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escapeHtml(SITE.title)} — API Reference</title>
+<style>${API_DOCS_STYLE}</style>
+</head>
+<body>
+<div id="app"></div>
+<main id="fallback">
+<h1>${escapeHtml(SITE.title)}</h1>
+<p>正在載入互動 API 文件…</p>
+<p><a href="/">返回首頁</a> · <a href="/openapi.json">OpenAPI JSON</a> · <a href="${escapeHtml(SITE.githubRepo)}">GitHub</a></p>
+<noscript>
+<p>互動 API 文件需要 JavaScript。你仍可直接開啟 <a href="/openapi.json">OpenAPI JSON</a>。</p>
+</noscript>
+</main>
+<script src="${SCALAR_CDN_URL}"></script>
+<script>
+Scalar.createApiReference("#app", {
+  url: "/openapi.json",
+  darkMode: window.matchMedia("(prefers-color-scheme: dark)").matches,
+});
+document.querySelector("#fallback")?.remove();
+</script>
+</body>
+</html>`;
+}
+
 /** Human-facing HTML docs page (zh-Hant). Self-contained: inline CSS, no JS, no external assets. */
 export function renderDocsHtml(): string {
   const base = SITE.baseUrl;
@@ -85,6 +130,7 @@ ${toolRows}
 
 <h2>其他資源</h2>
 <ul class="links">
+<li><a href="/docs">/docs</a> — 互動 API 文件，可直接在線上測試 REST API</li>
 <li><a href="/openapi.json">/openapi.json</a> — OpenAPI 3.0 規格（可匯入 Swagger UI、Postman）</li>
 <li><a href="/llms.txt">/llms.txt</a> — 給 AI 的服務概覽</li>
 <li><a href="${escapeHtml(SITE.githubRepo)}">原始碼與文件（GitHub）</a></li>

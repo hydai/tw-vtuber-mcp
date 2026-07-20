@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { SITE, ENDPOINTS } from "../src/site";
 import { TOOLS } from "../src/tools";
-import { renderDocsHtml, renderLlmsTxt } from "../src/docs";
+import { renderApiDocsHtml, renderDocsHtml, renderLlmsTxt } from "../src/docs";
 import worker from "../src/index";
 import { env, createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
 
@@ -50,12 +50,38 @@ describe("renderDocsHtml", () => {
     expect(html).toContain("<title>");
     expect(html).toContain(SITE.title);
     expect(html).toContain("/mcp");
+    expect(html).toContain('href="/docs"');
     expect(html).toContain('href="/llms.txt"');
     expect(html).toContain('href="/openapi.json"');
   });
 
   it("renders every endpoint path (drift guard)", () => {
     for (const e of ENDPOINTS) expect(html).toContain(e.path);
+  });
+});
+
+describe("renderApiDocsHtml", () => {
+  const html = renderApiDocsHtml();
+
+  it("mounts a pinned Scalar reference for the live OpenAPI document", () => {
+    expect(html.toLowerCase()).toContain("<!doctype html>");
+    expect(html).toContain('<meta name="viewport" content="width=device-width, initial-scale=1">');
+    expect(html).toContain('id="app"');
+    expect(html).toContain(
+      'src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.62.9"',
+    );
+    expect(html).not.toContain("@scalar/api-reference@latest");
+    expect(html).toContain('Scalar.createApiReference("#app"');
+    expect(html).toContain('url: "/openapi.json"');
+    expect(html).not.toContain("proxyUrl");
+  });
+
+  it("keeps useful navigation when JavaScript or the CDN is unavailable", () => {
+    expect(html).toContain('id="fallback"');
+    expect(html).toContain("<noscript>");
+    expect(html).toContain('href="/"');
+    expect(html).toContain('href="/openapi.json"');
+    expect(html).toContain(SITE.githubRepo);
   });
 });
 
