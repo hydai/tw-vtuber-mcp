@@ -118,7 +118,7 @@ describe("worker routing: docs surface", () => {
     expect(csp).toContain("default-src 'none'");
     expect(csp).toContain("script-src 'unsafe-inline' https://cdn.jsdelivr.net");
     expect(csp).toContain("font-src https://fonts.scalar.com");
-    expect(csp).toContain("connect-src 'self' https://*.oshi.tw");
+    expect(csp).toContain(`connect-src 'self' ${new URL(SITE.baseUrl).origin}`);
     expect(csp).not.toContain("api.scalar.com");
     expect(res.headers.get("x-content-type-options")).toBe("nosniff");
     expect(res.headers.get("referrer-policy")).toBe("no-referrer");

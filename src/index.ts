@@ -4,10 +4,12 @@ import { handleRest, jsonResponse, CORS } from "./rest";
 import { openApiSpec } from "./openapi";
 import { renderApiDocsHtml, renderDocsHtml, renderLlmsTxt } from "./docs";
 
+const LIVE_API_ORIGIN = new URL(openApiSpec.servers[0].url).origin;
+
 function apiDocsSecurityHeaders(url: URL): Record<string, string> {
-  const connectSources = url.origin === openApiSpec.servers[0].url
+  const connectSources = url.origin === LIVE_API_ORIGIN
     ? "'self'"
-    : "'self' https://*.oshi.tw";
+    : `'self' ${LIVE_API_ORIGIN}`;
 
   return {
     "Content-Security-Policy": [
