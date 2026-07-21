@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { SITE, ENDPOINTS } from "../src/site";
 import { TOOLS } from "../src/tools";
-import { renderDocsHtml, renderLlmsTxt } from "../src/docs";
+import { renderApiDocsHtml, renderDocsHtml, renderLlmsTxt } from "../src/docs";
 import worker from "../src/index";
 import { env, createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
 
@@ -50,6 +50,7 @@ describe("renderDocsHtml", () => {
     expect(html).toContain("<title>");
     expect(html).toContain(SITE.title);
     expect(html).toContain("/mcp");
+    expect(html).toContain('href="/docs"');
     expect(html).toContain('href="/llms.txt"');
     expect(html).toContain('href="/openapi.json"');
   });
@@ -59,14 +60,85 @@ describe("renderDocsHtml", () => {
   });
 });
 
-async function hit(path: string, headers: Record<string, string> = {}): Promise<Response> {
+describe("renderApiDocsHtml", () => {
+  const html = renderApiDocsHtml();
+
+  it("mounts a pinned Scalar reference for the live OpenAPI document", () => {
+    expect(html.toLowerCase()).toContain("<!doctype html>");
+    expect(html).toContain('<meta name="viewport" content="width=device-width, initial-scale=1">');
+    expect(html).toContain('id="app"');
+    expect(html).toContain(
+      'src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.62.9"',
+    );
+    expect(html).not.toContain("@scalar/api-reference@latest");
+    expect(html).toContain('Scalar.createApiReference("#app"');
+    expect(html).toContain('url: "/openapi.json"');
+    expect(html).not.toContain("proxyUrl");
+  });
+
+  it("emits a disabled Scalar AI agent configuration", () => {
+    expect(html).toMatch(/agent:\s*\{\s*disabled:\s*true,\s*\},/);
+  });
+
+  it("keeps useful navigation when JavaScript or the CDN is unavailable", () => {
+    expect(html).toContain('id="fallback"');
+    expect(html).toContain("<noscript>");
+    expect(html).toContain('href="/"');
+    expect(html).toContain('href="/openapi.json"');
+    expect(html).toContain(SITE.githubRepo);
+  });
+});
+
+async function hit(
+  path: string,
+  headers: Record<string, string> = {},
+  bindings: Env = env,
+): Promise<Response> {
   const ctx = createExecutionContext();
-  const res = await worker.fetch(new Request(`http://api.local${path}`, { headers }), env, ctx);
+  const res = await worker.fetch(new Request(`http://api.local${path}`, { headers }), bindings, ctx);
   await waitOnExecutionContext(ctx);
   return res;
 }
 
 describe("worker routing: docs surface", () => {
+  it("GET /docs serves Scalar before rate limiting", async () => {
+    const throwingEnv = {
+      RATE_LIMITER: {
+        limit: () => {
+          throw new Error("rate limiter should not be called for /docs");
+        },
+      },
+    } as unknown as Env;
+
+    const res = await hit("/docs", {}, throwingEnv);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/html");
+    expect(res.headers.get("cache-control")).toBe("public, max-age=3600");
+    const csp = res.headers.get("content-security-policy");
+    expect(csp).toContain("default-src 'none'");
+    expect(csp).toContain("script-src 'unsafe-inline' https://cdn.jsdelivr.net");
+    expect(csp).toContain("font-src https://fonts.scalar.com");
+    expect(csp).toContain(`connect-src 'self' ${new URL(SITE.baseUrl).origin}`);
+    expect(csp).not.toContain("api.scalar.com");
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(res.headers.get("referrer-policy")).toBe("no-referrer");
+    const html = await res.text();
+    expect(html).toContain("Scalar.createApiReference");
+    expect(html).toContain('url: "/openapi.json"');
+  });
+
+  it("GET /docs restricts live-origin connections to self", async () => {
+    const ctx = createExecutionContext();
+    const res = await worker.fetch(new Request(`${SITE.baseUrl}/docs`), env, ctx);
+    await waitOnExecutionContext(ctx);
+
+    expect(res.status).toBe(200);
+    const csp = res.headers.get("content-security-policy");
+    expect(csp).toContain("connect-src 'self';");
+    expect(csp).not.toContain("https://*.oshi.tw");
+    expect(csp).not.toContain("api.scalar.com");
+  });
+
   it("GET / with Accept: text/html serves the HTML docs page", async () => {
     const res = await hit("/", { Accept: "text/html" });
     expect(res.status).toBe(200);
@@ -84,6 +156,7 @@ describe("worker routing: docs surface", () => {
       source: string;
     };
     expect(body.service).toBe("tw-vtuber-mcp");
+    expect(body.endpoints.docs).toBe("/docs");
     expect(body.endpoints.llms).toBe("/llms.txt");
     expect(body.endpoints.mcp).toBe("/mcp");
     expect(body.source).toContain("TaiwanVtuberData");

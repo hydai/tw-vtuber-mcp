@@ -116,7 +116,9 @@ curl "https://twvtuber.oshi.tw/v1/events?type=anniversary&window=upcoming&region
 | `GET /v1/events?type=&window=&region=` | `list_events` |
 | `GET /v1/status` | `get_data_status` |
 
-**OpenAPI spec：** `https://twvtuber.oshi.tw/openapi.json` — 可匯入 Swagger UI、Postman 或任何 codegen 工具。（原始碼：[`src/openapi.ts`](src/openapi.ts)，即時提供。）
+**互動 API 文件：** `https://twvtuber.oshi.tw/docs` — 使用 Scalar 瀏覽所有 REST endpoint、輸入參數並直接向正式 API 發送請求。測試請求仍受每 IP 120 requests / 60s 限制。
+
+**OpenAPI spec：** `https://twvtuber.oshi.tw/openapi.json` — 給 Postman、codegen 或其他 OpenAPI 工具使用的 machine-readable 規格。（原始碼：[`src/openapi.ts`](src/openapi.ts)，即時提供。）
 
 **首頁與 llms.txt：** 用瀏覽器開 `https://twvtuber.oshi.tw/` 會看到 HTML 說明頁；API 用戶端（如 `curl`，預設 `Accept: */*`）對同一網址仍取得原本的 JSON。`https://twvtuber.oshi.tw/llms.txt` 提供給 AI 的精簡服務概覽（[llms.txt](https://llmstxt.org) 慣例）。
 

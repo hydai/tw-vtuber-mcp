@@ -116,7 +116,9 @@ A `vtuber` object:
 | `GET /v1/events?type=&window=&region=` | `list_events` |
 | `GET /v1/status` | `get_data_status` |
 
-**OpenAPI spec:** `https://twvtuber.oshi.tw/openapi.json` — import into Swagger UI, Postman, or any codegen tool. (Source: [`src/openapi.ts`](src/openapi.ts), served live.)
+**Interactive API reference:** `https://twvtuber.oshi.tw/docs` — use Scalar to browse every REST endpoint, enter parameters, and send requests directly to the live API. Test requests remain subject to the 120 requests / 60s per-IP rate limit.
+
+**OpenAPI spec:** `https://twvtuber.oshi.tw/openapi.json` — the machine-readable schema for Postman, code generation, and other OpenAPI tooling. (Source: [`src/openapi.ts`](src/openapi.ts), served live.)
 
 **Homepage & llms.txt:** open `https://twvtuber.oshi.tw/` in a browser for an HTML docs page; API clients (e.g. `curl`, default `Accept: */*`) get the original JSON from the same URL. `https://twvtuber.oshi.tw/llms.txt` is a concise overview for AI agents (the [llms.txt](https://llmstxt.org) convention).
 
