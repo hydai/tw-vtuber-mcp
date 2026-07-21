@@ -77,9 +77,7 @@ describe("renderApiDocsHtml", () => {
   });
 
   it("emits a disabled Scalar AI agent configuration", () => {
-    expect(html).toContain(`agent: {
-    disabled: true,
-  },`);
+    expect(html).toMatch(/agent:\s*\{\s*disabled:\s*true,\s*\},/);
   });
 
   it("keeps useful navigation when JavaScript or the CDN is unavailable", () => {
@@ -116,9 +114,29 @@ describe("worker routing: docs surface", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/html");
     expect(res.headers.get("cache-control")).toBe("public, max-age=3600");
+    const csp = res.headers.get("content-security-policy");
+    expect(csp).toContain("default-src 'none'");
+    expect(csp).toContain("script-src 'unsafe-inline' https://cdn.jsdelivr.net");
+    expect(csp).toContain("font-src https://fonts.scalar.com");
+    expect(csp).toContain("connect-src 'self' https://*.oshi.tw");
+    expect(csp).not.toContain("api.scalar.com");
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(res.headers.get("referrer-policy")).toBe("no-referrer");
     const html = await res.text();
     expect(html).toContain("Scalar.createApiReference");
     expect(html).toContain('url: "/openapi.json"');
+  });
+
+  it("GET /docs restricts live-origin connections to self", async () => {
+    const ctx = createExecutionContext();
+    const res = await worker.fetch(new Request(`${SITE.baseUrl}/docs`), env, ctx);
+    await waitOnExecutionContext(ctx);
+
+    expect(res.status).toBe(200);
+    const csp = res.headers.get("content-security-policy");
+    expect(csp).toContain("connect-src 'self';");
+    expect(csp).not.toContain("https://*.oshi.tw");
+    expect(csp).not.toContain("api.scalar.com");
   });
 
   it("GET / with Accept: text/html serves the HTML docs page", async () => {

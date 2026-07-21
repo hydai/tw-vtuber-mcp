@@ -4,6 +4,29 @@ import { handleRest, jsonResponse, CORS } from "./rest";
 import { openApiSpec } from "./openapi";
 import { renderApiDocsHtml, renderDocsHtml, renderLlmsTxt } from "./docs";
 
+function apiDocsSecurityHeaders(url: URL): Record<string, string> {
+  const connectSources = url.origin === openApiSpec.servers[0].url
+    ? "'self'"
+    : "'self' https://*.oshi.tw";
+
+  return {
+    "Content-Security-Policy": [
+      "default-src 'none'",
+      "script-src 'unsafe-inline' https://cdn.jsdelivr.net",
+      "style-src 'unsafe-inline'",
+      "font-src https://fonts.scalar.com",
+      "img-src 'self' data:",
+      `connect-src ${connectSources}`,
+      "base-uri 'none'",
+      "form-action 'none'",
+      "frame-ancestors 'none'",
+      "object-src 'none'",
+    ].join("; "),
+    "Referrer-Policy": "no-referrer",
+    "X-Content-Type-Options": "nosniff",
+  };
+}
+
 // Re-export the Durable Object class so the runtime can find it.
 export { VTuberMCP };
 
@@ -38,7 +61,12 @@ export default {
     if (url.pathname === "/docs") {
       return new Response(renderApiDocsHtml(), {
         status: 200,
-        headers: { "Content-Type": "text/html; charset=utf-8", ...CORS, "Cache-Control": "public, max-age=3600" },
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          ...CORS,
+          ...apiDocsSecurityHeaders(url),
+          "Cache-Control": "public, max-age=3600",
+        },
       });
     }
 
